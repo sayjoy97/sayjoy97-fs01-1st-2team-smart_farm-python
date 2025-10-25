@@ -9,15 +9,14 @@ class DHT11:
 
 
     def read(self):
-        while True:
-            try:
-                measured_temp = self.dht_device.temperature
-                measured_humidity = self.dht_device.humidity
-                time.sleep(900)
-            except RuntimeError as e:
-                print(f"Error reading DHT11 sensor: {e}")
-            finally:
-                return measured_temp, measured_humidity
+        try:
+            measured_temp = self.dht_device.temperature
+            measured_humidity = self.dht_device.humidity
+            time.sleep(900)
+        except RuntimeError as e:
+            print(f"Error reading DHT11 sensor: {e}")
+        finally:
+            return measured_temp, measured_humidity
 
 
     def close(self):

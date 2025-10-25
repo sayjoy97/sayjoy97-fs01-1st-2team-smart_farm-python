@@ -22,7 +22,7 @@ class MqttClient:
         print("연결 완료!")
     
 
-    #sub 메서드들들
+    #sub 메서드들
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             print("MQTT 연결 성공")
@@ -38,15 +38,15 @@ class MqttClient:
         payload = msg.payload.decode('utf-8')
     
 
-    #pub 메서드들들
-    def send_sensor_data(self, farm_order, temp, hum, light, co2=None):
+    #pub 메서드들
+    def send_sensor_data(self, farm_slot, measured_temp, measured_humidity, measured_light, measured_soil_moisture, measured_co2=None):
         """센서 데이터 전송"""
-        farm_uid = f"{self.device_serial}:{farm_order}"
+        farm_uid = f"{self.device_serial}:{farm_slot}"
         topic = f"{self.user_id}/smartfarm/{farm_uid}/sensor/data"
         
-        data = f"temp={temp};hum={hum};light={light}"
-        if co2 is not None:
-            data += f";co2={co2}"
+        data = f"measured_temp={measured_temp};measured_humidity={measured_humidity};measured_light={measured_light};measured_soil_moisture={measured_soil_moisture}"
+        if measured_co2 is not None:
+            data += f";measured_co2={measured_co2}"
         
         now = datetime.now().isoformat(timespec="seconds")
         data += f";ts={now}"
@@ -64,7 +64,7 @@ class MqttClient:
         self.client.publish(topic, data, qos=1)
         print(f"알림 전송: {message}")
     
-#종료료
+#종료
     def close(self):
         self.client.loop_stop()
         self.client.disconnect()

@@ -1,0 +1,21 @@
+# 스마트팜 시스템 필수 패키지
+
+# MQTT 통신
+paho-mqtt>=1.6.1
+
+# GPIO 제어 (라즈베리파이)
+RPi.GPIO>=0.7.1
+
+# 센서 라이브러리
+adafruit-circuitpython-dht>=1.7.0
+adafruit-blinka>=8.17.0
+
+# 시리얼 통신 (CO2 센서)
+pyserial>=3.5
+
+# SPI/I2C 통신 (ADC 센서)
+spidev>=3.6
+
+# 기타
+adafruit-circuitpython-mcp3xxx>=1.18.0
+

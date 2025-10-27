@@ -16,13 +16,21 @@ class PhotoResister:
         self.channel = AnalogIn(self.mcp, channel_number)
 
     def read(self):
-        # 아날로그 값을 읽어와서 반환
-        adc_value = self.channel.value  # 0 ~ 65535 사이의 값
-        voltage = self.channel.voltage   # 전압 값
-        return adc_value, voltage
+        """
+        조도센서 값을 반환
+        :return: (디지털 값, 전압) 튜플 반환
+        """
+        return self.channel.value, self.channel.voltage
 
 
     def close(self):
         # SPI 및 CS 핀 정리
         self.cs.deinit()
         self.spi.deinit()
+
+
+if __name__ == "__main__":
+    sensor = PhotoResister(0) # MCP3008 채널 번호 (0-7)
+    adc_value, voltage = sensor.read()
+    print(f"조도센서 값: {adc_value} (전압: {voltage:.2f}V)")
+    sensor.close()

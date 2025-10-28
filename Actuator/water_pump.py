@@ -13,7 +13,10 @@ class WaterPump:
         self.pin_ib1 = pin_ib1
         self.pin_ib2 = pin_ib2 if pin_ib2 is not None else pin_ib1 + 1
         
-        GPIO.setmode(GPIO.BCM)
+        try:
+            GPIO.setmode(GPIO.BCM)
+        except RuntimeError:
+            pass  # 이미 설정됨
         GPIO.setup(self.pin_ib1, GPIO.OUT)
         GPIO.setup(self.pin_ib2, GPIO.OUT)
         

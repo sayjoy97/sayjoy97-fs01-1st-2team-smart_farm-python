@@ -11,7 +11,7 @@
 import time
 import board
 from mqtt.mqtt_client import MqttClient
-from service.read_sensors import read_slot_sensors, read_ultrasonic_sensor, read_water_tank_sensor
+from service.read_sensors import read_slot_sensors, read_ultrasonic_sensor, read_water_tank_sensor, init_sensor_caches, stop_sensor_caches
 from service.actuator_control import ActuatorController
 from service.water_tank_monitor import WaterTankMonitor
 from Actuator.heater import Heater
@@ -142,7 +142,7 @@ def main():
                 print(f"    - 물받이탱크: 워터 센서 (GPIO {water_tank_pin})")
             
             # 액추에이터 컨트롤러 초기화
-            controller = ActuatorController(heater, water_pump, ventilation_fan, water_monitor, co2_servo=servo, led)
+            controller = ActuatorController(heater, water_pump, ventilation_fan, led, water_monitor, co2_servo=servo)
             
             # 저장
             clients[slot] = client
@@ -151,8 +151,15 @@ def main():
                 'heater': heater,
                 'water_pump': water_pump,
                 'ventilation_fan': ventilation_fan,
+                'led': led,
                 'servo': servo,
             }
+
+        # 센서 캐시 초기화 (DHT11, CO2 백그라운드 스레드 시작)
+        print("\n🔄 센서 캐시 초기화 중...")
+        for slot in slots:
+            init_sensor_caches(slot, sensor_pin_map[slot], has_co2=has_co2)
+        time.sleep(3)  # 워밍업 대기
 
         # 프리셋 요청
         print(f"\n📡 DB 서버에 프리셋 요청 중...")
@@ -248,6 +255,9 @@ def main():
         for slot in slots:
             clients[slot].close()
         
+        # 센서 캐시 중지
+        stop_sensor_caches()
+        
         # 액추에이터 정리
         print("🧹 액추에이터 정리 중...")
         for slot in slots:
@@ -256,6 +266,7 @@ def main():
             actuator_set['heater'].cleanup()
             actuator_set['water_pump'].cleanup()
             actuator_set['ventilation_fan'].cleanup()
+            actuator_set['led'].cleanup()
             if actuator_set['servo']:
                 actuator_set['servo'].cleanup()
         

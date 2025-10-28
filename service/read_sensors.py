@@ -4,51 +4,71 @@ from sensor.MH_Z19B import CO2Sensor
 from sensor.HC_SR04 import UltrasonicSensor
 from sensor.water import WaterLevelSensor
 from sensor.soil_moisture import SoilMoistureSensor
+from service.sensor_cache import SensorCache
 from mqtt.mqtt_client import MqttClient
 import board
 
 
+# 전역 캐시 저장소
+_dht11_caches = {}
+_co2_caches = {}
+
+
+def init_sensor_caches(slot, sensor_pins, has_co2=True):
+    """슬롯별 센서 캐시 초기화"""
+    global _dht11_caches, _co2_caches
+    
+    # DHT11 캐시
+    if slot not in _dht11_caches:
+        dht11 = DHT11(sensor_pins['dht11_pin'])
+        _dht11_caches[slot] = SensorCache(dht11, "DHT11")
+        _dht11_caches[slot].start()
+    
+    # CO2 캐시
+    if has_co2 and 'co2_port' in sensor_pins and sensor_pins['co2_port']:
+        if slot not in _co2_caches:
+            co2 = CO2Sensor(sensor_pins['co2_port'])
+            _co2_caches[slot] = SensorCache(co2, "CO2")
+            _co2_caches[slot].start()
+
+
+def stop_sensor_caches():
+    """모든 센서 캐시 중지"""
+    for cache in _dht11_caches.values():
+        cache.stop()
+    for cache in _co2_caches.values():
+        cache.stop()
+    _dht11_caches.clear()
+    _co2_caches.clear()
+
+
 def read_slot_sensors(slot, sensor_pins, has_co2=True):
-    """슬롯별 센서 값 읽기 (초음파 제외)
+    """슬롯별 센서 값 읽기 (캐시 사용)"""
     
-    Args:
-        slot: 슬롯 번호
-        sensor_pins: 슬롯별 센서 핀 설정 딕셔너리
-            예: {
-                'dht11_pin': board.D4,
-                'photo_channel': 0,
-                'soil_channel': 0,
-                'co2_port': '/dev/serial0'
-            }
-    
-    Returns:
-        temp, hum, light_adc, soil_adc, co2
-    """
-    
-    print(f"\n[슬롯 {slot}] 센서 값 읽기 시작...")
-    
-    # 센서 인스턴스 생성
-    dht11_sensor = DHT11(sensor_pins['dht11_pin'])
+    # 안정적인 센서 (즉시 읽기)
     photo_sensor = PhotoResister(sensor_pins['photo_channel'])
     soil_sensor = SoilMoistureSensor(sensor_pins['soil_channel'])
-    co2_sensor = None
-    if has_co2 and 'co2_port' in sensor_pins and sensor_pins['co2_port']:
-        co2_sensor = CO2Sensor(sensor_pins['co2_port'])
 
     try:
-        # 각 센서를 순서대로 읽기
-        temp, hum = dht11_sensor.read()
-        light_adc, light_voltage = photo_sensor.read()
-        soil_adc, soil_voltage = soil_sensor.read()
-        co2 = co2_sensor.read() if co2_sensor else None
+        # DHT11 - 캐시에서 가져오기
+        temp, hum = None, None
+        if slot in _dht11_caches:
+            value = _dht11_caches[slot].get()
+            if value:
+                temp, hum = value
         
-        print(f"[슬롯 {slot}] 센서 읽기 완료!")
+        # 조도, 토양 - 즉시 읽기
+        light_adc, _ = photo_sensor.read()
+        soil_adc, _ = soil_sensor.read()
+        
+        # CO2 - 캐시에서 가져오기
+        co2 = None
+        if has_co2 and slot in _co2_caches:
+            co2 = _co2_caches[slot].get()
         
         return temp, hum, light_adc, soil_adc, co2
     
     finally:
-        # 센서 리소스 정리
-        dht11_sensor.close()
         photo_sensor.close()
         soil_sensor.close()
 

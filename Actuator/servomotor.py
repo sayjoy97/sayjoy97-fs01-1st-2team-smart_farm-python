@@ -4,7 +4,10 @@ import time
 class ServoMotor:
     def __init__(self, pin):
         self.pin = pin
-        gpio.setmode(gpio.BCM)
+        try:
+            gpio.setmode(gpio.BCM)
+        except RuntimeError:
+            pass  # 이미 설정됨
         gpio.setup(self.pin, gpio.OUT)
         self.pwm = gpio.PWM(self.pin, 50)  # 50Hz 주파수
         self.pwm.start(0)

@@ -10,7 +10,10 @@ class VentilationFan:
             pin: ULN2003의 IN 핀에 연결된 GPIO 핀 번호
         """
         self.pin = pin
-        GPIO.setmode(GPIO.BCM)
+        try:
+            GPIO.setmode(GPIO.BCM)
+        except RuntimeError:
+            pass  # 이미 설정됨
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)  # 초기 상태: OFF
         self.is_on = False

@@ -4,16 +4,26 @@
 """
 
 class ActuatorController:
-    def __init__(self, heater, water_pump, ventilation_fan, water_monitor=None):
+    def __init__(self, heater, water_pump, ventilation_fan, water_monitor=None, co2_servo=None):
         self.heater = heater
         self.water_pump = water_pump
         self.ventilation_fan = ventilation_fan
         self.water_monitor = water_monitor  # 물탱크 모니터 (옵션)
+        self.co2_servo = co2_servo  # CO2 카트리지 제어용 서보 (옵션)
+        self.co2_release_angle = 90
+        self.co2_idle_angle = 0
+        self.co2_low_margin = 150
+        self.co2_recover_margin = 50
+        self.is_servo_releasing = False
         
         # 이전 상태 저장 (불필요한 제어 방지)
         self.last_heater_state = None
         self.last_pump_state = None
         self.last_fan_state = None
+
+        if self.co2_servo:
+            # 시작 시 CO2 카트리지를 닫힌 상태로 맞춰둡니다.
+            self.co2_servo.set_angle(self.co2_idle_angle)
     
     def control(self, sensor_data, preset):
         """
@@ -30,11 +40,13 @@ class ActuatorController:
         temp = sensor_data.get('temp')
         humidity = sensor_data.get('humidity')
         soil = sensor_data.get('soil')
+        co2 = sensor_data.get('co2')
         
         # 프리셋 값 가져오기
         optimal_temp = float(preset.get('OptimalTemp', 25))
         optimal_humidity = float(preset.get('OptimalHumidity', 60))
         optimal_soil = float(preset.get('SoilMoisture', 50))
+        optimal_co2 = float(preset.get('Co2Level', 800))
         
         # 1. 히터 제어 (온도 기반)
         if temp is not None:
@@ -77,6 +89,23 @@ class ActuatorController:
                 if self.ventilation_fan.is_on:
                     self.ventilation_fan.turn_off()
                     self.last_fan_state = False
+
+        # 4. CO2 제어 (서보 기반)
+        if self.co2_servo and co2 is not None:
+            release_threshold = max(0.0, optimal_co2 - self.co2_low_margin)
+            recovery_threshold = max(release_threshold + self.co2_recover_margin, release_threshold + 10)
+            recovery_threshold = min(optimal_co2, recovery_threshold)
+
+            if co2 < release_threshold:
+                if not self.is_servo_releasing:
+                    print("🫧 CO2 낮음 - 서보모터로 카트리지 개방")
+                    self.co2_servo.set_angle(self.co2_release_angle)
+                    self.is_servo_releasing = True
+            elif co2 >= recovery_threshold:
+                if self.is_servo_releasing:
+                    print("✅ CO2 정상화 - 서보모터 원위치")
+                    self.co2_servo.set_angle(self.co2_idle_angle)
+                    self.is_servo_releasing = False
     
     def stop_all(self):
         """모든 액추에이터 정지"""
@@ -86,4 +115,7 @@ class ActuatorController:
             self.water_pump.turn_off()
         if self.ventilation_fan.is_on:
             self.ventilation_fan.turn_off()
+        if self.co2_servo and self.is_servo_releasing:
+            self.co2_servo.set_angle(self.co2_idle_angle)
+            self.is_servo_releasing = False
 

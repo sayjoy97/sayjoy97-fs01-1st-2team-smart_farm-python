@@ -23,7 +23,7 @@ class DHT11:
 
 
 if __name__ == "__main__":
-    sensor = DHT11(board.D4)  # 예: GPIO4번
+    sensor = DHT11(board.D22)  # 예: GPIO22번
     try:
         temp, hum = sensor.read()
         if temp is not None:

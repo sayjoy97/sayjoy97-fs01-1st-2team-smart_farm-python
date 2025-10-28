@@ -17,6 +17,7 @@ from service.water_tank_monitor import WaterTankMonitor
 from Actuator.heater import Heater
 from Actuator.water_pump import WaterPump
 from Actuator.ventilation_fan import VentilationFan
+from Actuator.servomotor import ServoMotor
 
 
 def main():
@@ -30,7 +31,6 @@ def main():
     # MQTT 브로커 주소 (같은 컴퓨터: localhost, 다른 컴퓨터: IP 주소)
 
     broker = "192.168.14.69" # 경신 : 69번 우영: 62
-    broker = "localhost"
     
     # 센서 읽기 주기 (초)
     interval = 10
@@ -60,18 +60,18 @@ def main():
     
         # 슬롯별 액추에이터 GPIO 핀 번호 (test 파일 기준)
     actuator_pin_map = {
-        1: {'heater': 17, 'water_ib1': 5, 'water_ib2': 6, 'fan': 20},      # 슬롯 1
-        2: {'heater': 19, 'water_ib1': 13, 'water_ib2': 26, 'fan': 21},    # 슬롯 2
-        3: {'heater': 20, 'water_ib1': 16, 'water_ib2': 12, 'fan': 25},    # 슬롯 3
-        4: {'heater': 23, 'water_ib1': 24, 'water_ib2': 27, 'fan': 18},    # 슬롯 4
+        1: {'heater': 17, 'water_ib1': 5, 'water_ib2': 6, 'fan': 20, 'servo': 21},      # 슬롯 1
+        # 2: {'heater': 19, 'water_ib1': 13, 'water_ib2': 26, 'fan': 21},    # 슬롯 2
+        # 3: {'heater': 20, 'water_ib1': 16, 'water_ib2': 12, 'fan': 25},    # 슬롯 3
+        # 4: {'heater': 23, 'water_ib1': 24, 'water_ib2': 27, 'fan': 18},    # 슬롯 4
     }
     
     # 슬롯별 센서 핀 번호 / 채널 (test 파일 기준)
     sensor_pin_map = {
-        1: {'dht11_pin': board.D5,  'photo_channel': 0, 'soil_channel': 1, 'co2_port': '/dev/serial0' if has_co2 else None},   # 슬롯 1
-        2: {'dht11_pin': board.D17, 'photo_channel': 1, 'soil_channel': 2, 'co2_port': '/dev/serial1' if has_co2 else None},   # 슬롯 2
-        3: {'dht11_pin': board.D18, 'photo_channel': 2, 'soil_channel': 3, 'co2_port': '/dev/serial2' if has_co2 else None},   # 슬롯 3
-        4: {'dht11_pin': board.D27, 'photo_channel': 3, 'soil_channel': 4, 'co2_port': '/dev/serial3' if has_co2 else None},   # 슬롯 4
+        1: {'dht11_pin': board.D22,  'photo_channel': 0, 'soil_channel': 1, 'co2_port': '/dev/serial0' if has_co2 else None},   # 슬롯 1
+        # 2: {'dht11_pin': board.D17, 'photo_channel': 1, 'soil_channel': 2, 'co2_port': '/dev/serial1' if has_co2 else None},   # 슬롯 2
+        # 3: {'dht11_pin': board.D18, 'photo_channel': 2, 'soil_channel': 3, 'co2_port': '/dev/serial2' if has_co2 else None},   # 슬롯 3
+        # 4: {'dht11_pin': board.D27, 'photo_channel': 3, 'soil_channel': 4, 'co2_port': '/dev/serial3' if has_co2 else None},   # 슬롯 4
     }
     
     # 초음파 센서 (통합 - 슬롯 공유, 물통 거리 측정)
@@ -89,7 +89,6 @@ def main():
     print("🌱 스마트팜 시스템 시작")
     print("=" * 60)
     print(f"📟 디바이스: {device_serial}")
-    print(f"📍 슬롯: {slots}")
     print(f"🌐 MQTT 브로커: {broker}")
     print(f"⏱️  센서 읽기 주기: {interval}초")
     print("=" * 60)
@@ -124,6 +123,10 @@ def main():
             heater = Heater(act_pins['heater'])
             water_pump = WaterPump(act_pins['water_ib1'], act_pins['water_ib2'])
             ventilation_fan = VentilationFan(act_pins['fan'])
+            servo = None
+            if 'servo' in act_pins and act_pins['servo'] is not None:
+                servo = ServoMotor(act_pins['servo'])
+                print(f"    🫧 CO2 서보: GPIO {act_pins['servo']}")
             
             # MQTT 클라이언트 초기화
             client = MqttClient(farm_uid, broker)
@@ -136,12 +139,17 @@ def main():
                 print(f"    - 물받이탱크: 워터 센서 (GPIO {water_tank_pin})")
             
             # 액추에이터 컨트롤러 초기화 (물탱크 모니터 연결)
-            controller = ActuatorController(heater, water_pump, ventilation_fan, water_monitor)
+            controller = ActuatorController(heater, water_pump, ventilation_fan, water_monitor, co2_servo=servo)
             
             # 저장
             clients[slot] = client
             controllers[slot] = controller
-            actuators[slot] = (heater, water_pump, ventilation_fan)
+            actuators[slot] = {
+                'heater': heater,
+                'water_pump': water_pump,
+                'ventilation_fan': ventilation_fan,
+                'servo': servo,
+            }
 
         # 프리셋 요청
         print(f"\n📡 DB 서버에 프리셋 요청 중...")
@@ -197,6 +205,7 @@ def main():
                 # 물탱크 상태 요약
                 tank_summary = water_monitor.get_status_summary()
                 if tank_summary['alert_status'] != "정상":
+                    water_monitor.mqtt_client.send_notification_logs(f"[WARNING] [물탱크] 급수상태={supply_status}, 물받이상태={overflow_status}")
                     print(f"\n⚠️  물탱크 주의: 급수={supply_status}, 물받이={overflow_status}\n")
                 
                 # ========================================
@@ -240,10 +249,12 @@ def main():
         print("🧹 액추에이터 정리 중...")
         for slot in slots:
             controllers[slot].stop_all()
-            heater, water_pump, ventilation_fan = actuators[slot]
-            heater.cleanup()
-            water_pump.cleanup()
-            ventilation_fan.cleanup()
+            actuator_set = actuators[slot]
+            actuator_set['heater'].cleanup()
+            actuator_set['water_pump'].cleanup()
+            actuator_set['ventilation_fan'].cleanup()
+            if actuator_set['servo']:
+                actuator_set['servo'].cleanup()
         
         print("✅ 프로그램 종료\n")
 

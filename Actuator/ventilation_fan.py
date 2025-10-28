@@ -35,3 +35,21 @@ class VentilationFan:
         GPIO.cleanup(self.pin)
         print(f"🧹 환기팬 GPIO {self.pin} 정리 완료")
 
+
+if __name__ == "__main__":
+    import time
+
+    TEST_PIN = 20
+    fan = VentilationFan(TEST_PIN)
+
+    try:
+        for _ in range(3):  # 간단히 켜고 끄는 테스트
+            fan.turn_on()
+            time.sleep(2)
+            fan.turn_off()
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("테스트가 사용자에 의해 중단되었습니다.")
+    finally:
+        fan.cleanup()
+

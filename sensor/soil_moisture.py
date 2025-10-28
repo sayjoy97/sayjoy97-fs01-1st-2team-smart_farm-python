@@ -2,7 +2,7 @@
 import board
 import busio
 import digitalio
-import adafruit_mcp3xxx.mcp3208 as MCP
+import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
 
 class SoilMoistureSensor:
@@ -18,8 +18,8 @@ class SoilMoistureSensor:
         self.spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
         # CS 핀 설정
         self.cs = digitalio.DigitalInOut(cs_pin)
-        # MCP3208 객체 생성
-        self.mcp = MCP.MCP3208(self.spi, self.cs)
+        # MCP3008 객체 생성
+        self.mcp = MCP.MCP3008(self.spi, self.cs)
         # 지정된 채널 번호로 아날로그 입력 채널 생성
         self.channel = AnalogIn(self.mcp, channel_number)
 
@@ -49,7 +49,7 @@ class SoilMoistureSensor:
 
 
 if __name__ == "__main__":
-    sensor = SoilMoistureSensor(channel_number=0)
+    sensor = SoilMoistureSensor(channel_number=1)
     try:
         adc_value, voltage = sensor.read()
         if adc_value is not None:

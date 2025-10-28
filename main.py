@@ -18,7 +18,7 @@ from Actuator.heater import Heater
 from Actuator.water_pump import WaterPump
 from Actuator.ventilation_fan import VentilationFan
 from Actuator.servomotor import ServoMotor
-
+from Actuator.led import LED
 
 def main():
     # ========================================
@@ -60,7 +60,7 @@ def main():
     
         # 슬롯별 액추에이터 GPIO 핀 번호 (test 파일 기준)
     actuator_pin_map = {
-        1: {'heater': 17, 'water_ib1': 5, 'water_ib2': 6, 'fan': 20, 'servo': 21},      # 슬롯 1
+        1: {'heater': (16,17), 'led': (27,25,18), 'water_ib1': 5, 'water_ib2': 6, 'fan': 20, 'servo': 21},      # 슬롯 1
         # 2: {'heater': 19, 'water_ib1': 13, 'water_ib2': 26, 'fan': 21},    # 슬롯 2
         # 3: {'heater': 20, 'water_ib1': 16, 'water_ib2': 12, 'fan': 25},    # 슬롯 3
         # 4: {'heater': 23, 'water_ib1': 24, 'water_ib2': 27, 'fan': 18},    # 슬롯 4
@@ -114,6 +114,7 @@ def main():
             print(f"    🔥 히터: GPIO {act_pins['heater']}")
             print(f"    💧 물펌프: GPIO {act_pins['water_ib1']}/{act_pins['water_ib2']}")
             print(f"    🌀 환기팬: GPIO {act_pins['fan']}")
+            print(f"    led: GPIO {act_pins['led']}")
             print(f"    🌡️  DHT11: GPIO {sens_pins['dht11_pin']}")
             print(f"    💡 조도센서: 채널 {sens_pins['photo_channel']}")
             print(f"    🌱 토양센서: 채널 {sens_pins['soil_channel']}")
@@ -123,6 +124,8 @@ def main():
             heater = Heater(act_pins['heater'])
             water_pump = WaterPump(act_pins['water_ib1'], act_pins['water_ib2'])
             ventilation_fan = VentilationFan(act_pins['fan'])
+            led =  LED(act_pins['led'])
+                
             servo = None
             if 'servo' in act_pins and act_pins['servo'] is not None:
                 servo = ServoMotor(act_pins['servo'])
@@ -138,8 +141,8 @@ def main():
                 print(f"    - 급수탱크: 초음파 센서 (GPIO {ultrasonic_trig}/{ultrasonic_echo})")
                 print(f"    - 물받이탱크: 워터 센서 (GPIO {water_tank_pin})")
             
-            # 액추에이터 컨트롤러 초기화 (물탱크 모니터 연결)
-            controller = ActuatorController(heater, water_pump, ventilation_fan, water_monitor, co2_servo=servo)
+            # 액추에이터 컨트롤러 초기화
+            controller = ActuatorController(heater, water_pump, ventilation_fan, water_monitor, co2_servo=servo, led)
             
             # 저장
             clients[slot] = client

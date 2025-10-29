@@ -21,5 +21,7 @@ class ServoMotor:
         self.pwm.ChangeDutyCycle(0)
 
     def cleanup(self):
+        self.pwm.start(12.5)
+        time.sleep(0.5)
         self.pwm.stop()
         gpio.cleanup(self.pin)

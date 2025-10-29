@@ -26,7 +26,7 @@ def main():
     # ========================================
     
     # 디바이스 시리얼 넘버
-    device_serial = "A1001"
+    device_serial = "B1001"
     
     # MQTT 브로커 주소 (같은 컴퓨터: localhost, 다른 컴퓨터: IP 주소)
 
@@ -60,7 +60,7 @@ def main():
     
         # 슬롯별 액추에이터 GPIO 핀 번호 (test 파일 기준)
     actuator_pin_map = {
-        1: {'heater': (16,17), 'led': (27,25,18), 'water_ib1': 5, 'water_ib2': 6, 'fan': (20,12), 'servo': 21},      # 슬롯 1
+        1: {'heater': [16,17], 'led': [27,25,18], 'water_ib1': 5, 'water_ib2': 6, 'fan': [20,12], 'servo': 21},      # 슬롯 1
         # 2: {'heater': 19, 'water_ib1': 13, 'water_ib2': 26, 'fan': 21},    # 슬롯 2
         # 3: {'heater': 20, 'water_ib1': 16, 'water_ib2': 12, 'fan': 25},    # 슬롯 3
         # 4: {'heater': 23, 'water_ib1': 24, 'water_ib2': 27, 'fan': 18},    # 슬롯 4
@@ -269,7 +269,7 @@ def main():
             actuator_set['led'].cleanup()
             if actuator_set['servo']:
                 actuator_set['servo'].cleanup()
-        
+        time.sleep(1)
         print("✅ 프로그램 종료\n")
 
 

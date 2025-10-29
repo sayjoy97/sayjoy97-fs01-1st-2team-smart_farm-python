@@ -113,6 +113,11 @@ class MqttClient:
         if light is not None:
             data_parts.append(f"measuredLight={light}")
         if soil is not None:
+
+            # Boolean을 1/0으로 변환
+            soil_value = 1 if soil else 0
+            data_parts.append(f"soil={soil_value}")
+
             data_parts.append(f"soil={soil}")
         if co2 is not None:
             data_parts.append(f"co2={co2}")

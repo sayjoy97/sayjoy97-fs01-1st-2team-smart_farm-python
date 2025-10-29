@@ -14,13 +14,14 @@ class VentilationFan:
         except RuntimeError:
             pass  # 이미 설정됨
         
+        # 항상 self.pin을 설정
+        self.pin = pin
+        
         if isinstance(pin, int):
-            self.pin = pin
             GPIO.setup(self.pin, GPIO.OUT)
             GPIO.output(self.pin, GPIO.LOW)
         elif isinstance(pin, list):
-            self.pins = pin
-            for p in self.pins:
+            for p in self.pin:
                 GPIO.setup(p, GPIO.OUT)
                 GPIO.output(p, GPIO.LOW)
         
@@ -29,8 +30,8 @@ class VentilationFan:
 
     def turn_on(self):
         """환기팬 켜기"""
-        if hasattr(self, 'pins'):
-            for p in self.pins:
+        if isinstance(self.pin, list):
+            for p in self.pin:
                 GPIO.output(p, GPIO.HIGH)
         else:
             GPIO.output(self.pin, GPIO.HIGH)
@@ -39,8 +40,8 @@ class VentilationFan:
 
     def turn_off(self):
         """환기팬 끄기"""
-        if hasattr(self, 'pins'):
-            for p in self.pins:
+        if isinstance(self.pin, list):
+            for p in self.pin:
                 GPIO.output(p, GPIO.LOW)
         else:
             GPIO.output(self.pin, GPIO.LOW)
@@ -51,17 +52,14 @@ class VentilationFan:
         """GPIO 정리"""
         if self.is_on:
             self.turn_off()
-        if hasattr(self, 'pins'):
-            GPIO.cleanup(self.pins)
-        else:
-            GPIO.cleanup(self.pin)
+        GPIO.cleanup(self.pin)
         print(f"🧹 환기팬 GPIO 정리 완료")
 
 
 if __name__ == "__main__":
     import time
 
-    TEST_PIN = 20
+    TEST_PIN = 12
     fan = VentilationFan(TEST_PIN)
 
     try:

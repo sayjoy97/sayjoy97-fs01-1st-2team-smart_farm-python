@@ -26,7 +26,7 @@ def main():
     # ========================================
     
     # 디바이스 시리얼 넘버
-    device_serial = "A1001"
+    device_serial = "B1002"
     
     # MQTT 브로커 주소 (같은 컴퓨터: localhost, 다른 컴퓨터: IP 주소)
 
@@ -60,7 +60,7 @@ def main():
     
         # 슬롯별 액추에이터 GPIO 핀 번호 (test 파일 기준)
     actuator_pin_map = {
-        1: {'heater': (16,17), 'led': (27,25,18), 'water_ib1': 5, 'water_ib2': 6, 'fan': (20,12), 'servo': 21},      # 슬롯 1
+        1: {'heater': [16,17], 'led': [27,25,18], 'water_ib1': 5, 'water_ib2': 6, 'fan': [20,12], 'servo': 21},      # 슬롯 1
         # 2: {'heater': 19, 'water_ib1': 13, 'water_ib2': 26, 'fan': 21},    # 슬롯 2
         # 3: {'heater': 20, 'water_ib1': 16, 'water_ib2': 12, 'fan': 25},    # 슬롯 3
         # 4: {'heater': 23, 'water_ib1': 24, 'water_ib2': 27, 'fan': 18},    # 슬롯 4
@@ -98,6 +98,19 @@ def main():
     controllers = {}
     actuators = {}  # cleanup 용도
     
+    def create_preset_callback(slot_num):
+        """슬롯별 프리셋 업데이트 콜백 생성 (클로저)"""
+        def on_preset_updated(new_preset):
+            timestamp = time.strftime("%H:%M:%S")
+            print(f"\n🔄 [{timestamp}] 슬롯 {slot_num} 프리셋 실시간 업데이트!")
+            print(f"   🌡️  온도: {new_preset.get('OptimalTemp')}°C")
+            print(f"   💧 습도: {new_preset.get('OptimalHumidity')}%")
+            print(f"   💡 조도: {new_preset.get('LightIntensity')} lux")
+            print(f"   🌱 토양: {new_preset.get('SoilMoisture')} ADC")
+            print(f"   🌫️  CO2: {new_preset.get('Co2Level')} ppm")
+            print(f"   ✅ 다음 제어 사이클({interval}초 이내)에 자동 반영됩니다.\n")
+        return on_preset_updated
+    
     # 물탱크 모니터 초기화 (디바이스 단위로 1개 - 모든 슬롯 공유)
     # 첫 번째 슬롯의 MQTT 클라이언트 사용 (알림 전송용)
     water_monitor = None
@@ -133,6 +146,10 @@ def main():
             
             # MQTT 클라이언트 초기화
             client = MqttClient(farm_uid, broker)
+            
+            # 프리셋 업데이트 콜백 등록 (MQTT로 실시간 변경 감지)
+            preset_callback = create_preset_callback(slot)
+            client.set_preset_update_callback(preset_callback)
             
             # 물탱크 모니터 초기화 (첫 번째 슬롯에서만)
             if water_monitor is None:
@@ -269,7 +286,7 @@ def main():
             actuator_set['led'].cleanup()
             if actuator_set['servo']:
                 actuator_set['servo'].cleanup()
-        
+        time.sleep(1)
         print("✅ 프로그램 종료\n")
 
 

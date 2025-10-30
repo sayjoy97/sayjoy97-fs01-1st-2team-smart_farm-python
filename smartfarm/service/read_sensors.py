@@ -16,11 +16,17 @@ def read_slot_sensors(slot, sensor_pins, has_co2=True):
             예: {
                 'dht11_pin': board.D4,
                 'photo_channel': 0,
+
+                'water_pin': board.D26,
+
                 'water_channel': 3,
                 'co2_port': '/dev/serial0'
             }
     
     Returns:
+
+        temp, hum, light_adc, water_detected, co2
+
         temp, hum, light_adc, soil_adc, co2
     """
     
@@ -32,18 +38,30 @@ def read_slot_sensors(slot, sensor_pins, has_co2=True):
     co2_sensor = None
     if has_co2 and 'co2_port' in sensor_pins and sensor_pins['co2_port']:
         co2_sensor = CO2Sensor(sensor_pins['co2_port'])
+
+    water_sensor = WaterLevelSensor(sensor_pins['water_pin'])
+
     water_sensor = WaterLevelSensor(sensor_pins['water_channel'])
+
 
     try:
         # 각 센서를 순서대로 읽기
         temp, hum = dht11_sensor.read()
         light_adc, light_voltage = photo_sensor.read()
         co2 = co2_sensor.read() if co2_sensor else None
+
+        water_detected = water_sensor.read()
+        
+        print(f"[슬롯 {slot}] 센서 읽기 완료!")
+        
+        return temp, hum, light_adc, water_detected, co2
+
         soil_adc, soil_voltage = water_sensor.read()
         
         print(f"[슬롯 {slot}] 센서 읽기 완료!")
         
         return temp, hum, light_adc, soil_adc, co2
+
     
     finally:
         # 센서 리소스 정리
@@ -80,13 +98,22 @@ if __name__ == "__main__":
         test_pins = {
             'dht11_pin': board.D4,
             'photo_channel': 0,
+
+            'water_pin': board.D26,
+
             'water_channel': 3,
+
             'co2_port': '/dev/serial0'
         }
         
         # 슬롯 1 센서 읽기
+
+        temp, hum, light, water, co2 = read_slot_sensors(1, test_pins)
+        print(f"\n슬롯 1 센서값: 온도={temp}, 습도={hum}, 조도={light}, 워터={water}, CO2={co2}")
+
         temp, hum, light, soil, co2 = read_slot_sensors(1, test_pins)
         print(f"\n슬롯 1 센서값: 온도={temp}, 습도={hum}, 조도={light}, 토양={soil}, CO2={co2}")
+
         
         # 초음파 센서 읽기
         distance = read_ultrasonic_sensor()

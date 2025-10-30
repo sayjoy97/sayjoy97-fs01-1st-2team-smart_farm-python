@@ -118,12 +118,12 @@ class ActuatorController:
             # LED 작동 시간대 체크 (8시~22시)
             if 8 <= current_hour < 22:
                 # 조도가 낮으면 LED 켜기 (광합성 보조)
-                if light < optimal_light - 1000:  # 기준값보다 1000 lux 낮으면
+                if light < optimal_light - 25:  # 기준값보다 25 낮으면
                     if not self.led.is_on:
                         self.led.turn_on()
                         self.last_led_state = True
                 # 조도가 충분하면 LED 끄기 (에너지 절약)
-                elif light > optimal_light + 500:  # 기준값보다 500 lux 높으면
+                elif light > optimal_light + 25:  # 기준값보다 25 높으면
                     if self.led.is_on:
                         self.led.turn_off()
                         self.last_led_state = False

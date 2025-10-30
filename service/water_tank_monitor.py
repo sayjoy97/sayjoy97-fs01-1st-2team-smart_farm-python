@@ -22,7 +22,7 @@ class WaterTankMonitor:
         self.device_serial = device_serial
         
         # 급수 물탱크 설정 (초음파 센서)
-        self.supply_tank_height = 30  # 탱크 총 높이 (cm)
+        self.supply_tank_height = 20  # 탱크 총 높이 (cm)
         self.supply_low_threshold = 5  # 낮음 경고 (cm)
         self.supply_critical_threshold = 3  # 위험 경고 (cm)
         

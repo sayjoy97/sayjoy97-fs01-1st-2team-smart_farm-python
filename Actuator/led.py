@@ -6,33 +6,35 @@ class LED:
             gpio.setmode(gpio.BCM)
         except RuntimeError:
             pass  # 이미 설정됨
+        
+        # 항상 self.pin을 설정
+        self.pin = pin
+        
         if isinstance(pin, int):
-            self.pin = pin
             gpio.setup(self.pin, gpio.OUT)
+            gpio.output(self.pin, gpio.LOW)
         elif isinstance(pin, list):
-            self.pins = pin
-            for p in self.pins:
+            for p in self.pin:
                 gpio.setup(p, gpio.OUT)
+                gpio.output(p, gpio.LOW)
+        
         self.is_on = False
 
     def turn_on(self):
-        if hasattr(self, 'pins'):
-            for p in self.pins:
+        if isinstance(self.pin, list):
+            for p in self.pin:
                 gpio.output(p, gpio.HIGH)
         else:
             gpio.output(self.pin, gpio.HIGH)
         self.is_on = True
 
     def turn_off(self):
-        if hasattr(self, 'pins'):
-            for p in self.pins:
+        if isinstance(self.pin, list):
+            for p in self.pin:
                 gpio.output(p, gpio.LOW)
         else:
             gpio.output(self.pin, gpio.LOW)
         self.is_on = False
 
     def cleanup(self):
-        if hasattr(self, 'pins'):
-            gpio.cleanup(self.pins)
-        else:
-            gpio.cleanup(self.pin)
+        gpio.cleanup(self.pin)

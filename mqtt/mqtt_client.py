@@ -23,6 +23,7 @@ class MqttClient:
             'Co2Level': '800'
         }
         self.preset_received = False  # 프리셋 수신 여부
+        self.preset_update_callback = None  # 프리셋 업데이트 콜백
         
         # 브로커 연결
         print(f"MQTT 브로커 연결: {broker}")
@@ -67,6 +68,13 @@ class MqttClient:
                 self.current_preset = { **self.current_preset, **params }
                 print(f"✅ [프리셋 업데이트]")
                 print(f"   {self.current_preset}")
+                
+                # 콜백 호출 (실시간 프리셋 변경 알림)
+                if self.preset_update_callback:
+                    try:
+                        self.preset_update_callback(self.current_preset)
+                    except Exception as e:
+                        print(f"❌ 콜백 실행 오류: {e}")
         
         # 프리셋 응답 수신 (시작 시 DB 조회 결과)
         elif topic == f"smartfarm/{self.farm_uid}/preset/response":
@@ -85,6 +93,13 @@ class MqttClient:
                     self.preset_received = True
                     print(f"✅ [DB 프리셋 수신]")
                     print(f"   {self.current_preset}")
+                    
+                    # 콜백 호출 (초기 프리셋 로드 알림)
+                    if self.preset_update_callback:
+                        try:
+                            self.preset_update_callback(self.current_preset)
+                        except Exception as e:
+                            print(f"❌ 콜백 실행 오류: {e}")
     
     def get_preset(self):
         """현재 프리셋 반환"""
@@ -99,6 +114,15 @@ class MqttClient:
     def is_preset_ready(self):
         """프리셋 수신 여부 확인"""
         return self.preset_received
+    
+    def set_preset_update_callback(self, callback):
+        """프리셋 업데이트 시 호출될 콜백 함수 등록
+        
+        Args:
+            callback: function(new_preset) - 프리셋 업데이트 시 호출될 함수
+        """
+        self.preset_update_callback = callback
+        print(f"✅ [콜백 등록] 프리셋 업데이트 콜백 설정됨")
     
 
     #pub 메서드

@@ -26,7 +26,7 @@ def main():
     # ========================================
     
     # 디바이스 시리얼 넘버
-    device_serial = "B1001"
+    device_serial = "B1002"
     
     # MQTT 브로커 주소 (같은 컴퓨터: localhost, 다른 컴퓨터: IP 주소)
 
